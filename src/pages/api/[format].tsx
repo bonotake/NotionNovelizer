@@ -14,6 +14,25 @@ class Converter {
     constructor (blocks: Block[]) {
         this._blocks = blocks
     }
+
+    /**
+     * 文字列を小説風にインデントする
+     * @param text 元になるテキスト
+     * @returns インデントされたテキスト
+     */ 
+    private indent(text: string): string {
+        if (text.startsWith('「') || text.startsWith('『')) {
+            return text;
+        } else {
+            return '　' + text;
+        }
+    }
+
+    /**
+     * Notion文字列を日本語テキストに変換する
+     * @param block Notionのブロック
+     * @returns テキストの文字列
+     */
     private convert(block: Block): string {
         function isParagraph(b: any): b is ParagraphBlock {
             return b !== undefined &&
@@ -21,9 +40,8 @@ class Converter {
                 b.type == 'paragraph';
         }
         if (isParagraph(block)) {
-            const result = '　' + block.paragraph.text.map((txt: RichText) => txt.plain_text).join('\n');
-            console.log(result)
-            return result;
+            const result = block.paragraph.text.map((txt: RichText) => txt.plain_text).join('\n');
+            return this.indent(result);
         }
         else {
             console.log('unknown block type: ${block.type}');

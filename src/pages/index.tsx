@@ -8,7 +8,7 @@ const Main = () => {
     if (!data) return <p>loading...</p>
 
     const lines = data.text.split('\n');
-    return lines.map((line) => <p>{line}</p>)
+    return lines.map((line) => <React.Fragment>{line}<br /></React.Fragment>)
 }
 
 export default Main
