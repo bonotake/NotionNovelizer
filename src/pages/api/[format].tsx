@@ -1,6 +1,7 @@
 import { Client } from '@notionhq/client'
 import { Block, ParagraphBlock, RichText } from '@notionhq/client/build/src/api-types'
 import type { NextApiRequest, NextApiResponse } from 'next'
+import next from 'next';
 import type { PlainText } from '../../libs/types'
 
 
@@ -25,8 +26,8 @@ class Converter {
             return result;
         }
         else {
-            console.log('unknown block type.');
-            return '';
+            console.log('unknown block type: ${block.type}');
+            return block.type;
         }
     }
     get text(): string {
@@ -36,7 +37,25 @@ class Converter {
 
 
 export default async (req: NextApiRequest, res: NextApiResponse<PlainText>) => {
-    const response = await notion.blocks.children.list({ block_id: pageid });
-    res.status(200).send({ text: (new Converter(response.results)).text });
+    let result = '';
+    let has_more = true;
+    let start_cursor = null;
+    while (has_more) {
+        type Param = {
+            block_id: string,
+            start_cursor?: string
+        }
+        let param: Param = { block_id: pageid };
+        if (start_cursor != null) {
+            param.start_cursor = start_cursor;
+        }
+        const response = await notion.blocks.children.list(param);
+        has_more = response.has_more;
+        if (has_more) {
+            start_cursor = response.next_cursor
+        }
+        result += new Converter(response.results).text;
+    }
+    res.status(200).send({ text: result });
 }
 
