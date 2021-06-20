@@ -1,15 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React from 'react'
+import React, { useState } from 'react'
 import { Block, ParagraphBlock, RichText } from '@notionhq/client/build/src/api-types'
-import type { Blocks } from '../libs/types'
 import useSWR from 'swr'
-import { EventEmitter } from 'stream';
 
-
-type Props = {
-    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void,
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
-}
 
 class Converter {
     private _blocks: Block[]
@@ -57,77 +50,78 @@ class Converter {
 }
 
 
-type State = {
-    pageID: string,
-    text: string
-}
+const App: React.FC = ({ children }) => {
+    const [pageId, setPageId] = useState('');
+    const [url, setUrl] = useState('');
 
-class App extends React.Component<{}, State> {
-    constructor(props: Props) {
-        super(props);
-        this.state = { 
-            pageID: '',
-            text: ''
+    type InputProp = {
+        setPageId: (arg: string) => void;
+        url: string;
+        setUrl: (arg: string) => void;
+    }
+
+    const Input: React.FC<InputProp> = ({ setPageId, url, setUrl }) => {
+        let input: HTMLInputElement;
+
+        const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            setUrl(input.value);
+            let str = input.value;
+            const len = str.length;
+            if (len >= 32) {
+                setPageId(str.substring(len - 32));
+            }
         }
-
-        this.handleChange = this.handleChange.bind(this);
-        this.handleSubmit = this.handleSubmit.bind(this);
-    }
-
-    private handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let str = event.target.value;
-        str = str.split('?')[0];
-        if (str.length > 32) {
-            str = str.substring(str.length - 32);
-        }
-        this.setState({ pageID: str })
-    }
-
-    private async handleSubmit(event: React.MouseEvent<HTMLButtonElement>) {
-        event.preventDefault();
-        const state = await fetch(`/api/${this.state.pageID}`)
-        .then((res) => res.json())
-        .then((blocks) => ({
-            pageID: this.state.pageID,
-            text: new Converter(blocks.blocks).text
-        }));
-        this.setState(state);
-    }
-
-    private renderText(): JSX.Element {
-        const lines = this.state.text.split('\n');
-        console.log(lines.length);
-        const result = lines.map((line) => <React.Fragment>{line}<br/></React.Fragment>);
-        return <span>{result}</span>
-    }
-
-    
-    render() {
         return <span>
             <div className='container'>
                 <div className='row'>
                     <h1>aaa</h1>
                 </div>
-                <form className='row align-items-end'>
+                <form className='row align-items-end' onSubmit={handleSubmit}>
                     <div className='col-10'>                    
                         <label htmlFor='page-url' className='form-label'>Page URL</label>
                         <input type='text' className='form-control' id='page-url'
-                            onChange={ this.handleChange } />
+                            ref={node => (input = node)} />
                     </div>
                     <div className='col-auto'>
-                        <button className='btn btn-primary' onClick={this.handleSubmit}>更新</button>
+                        <button className='btn btn-primary' type='submit'>更新</button>
                     </div>
                 </form>
             </div>
+        </span>
+    }   
+
+    type ContentProp = {
+        pageID: string
+    }
+
+    const Content: React.FC<ContentProp> = ({ pageID, children }) => {
+        const { data, error } = useSWR(`/api/${pageId}`);
+
+        if (error) return <div>failed to load</div>;
+        if (!data) return <div>loading...</div>;
+
+        const text = new Converter(data.blocks).text;
+        const lines = text.split('\n');
+        console.log(lines.length);
+        const result = lines.map((line) => <React.Fragment>{line}<br/></React.Fragment>);
+        
+        return <span>
             <div className='container'>
                 <h2>本文</h2>
                 <div className='d-grid gap-3 container border'>
-                    {this.renderText()}
+                    {result}
                 </div>
             </div>
         </span>
-
     }
+
+    return <html>
+        <body>
+            <Input setPageId={setPageId} url={url} setUrl={setUrl}/>
+            <Content pageID={pageId}/>
+        </body>
+    </html>        
 }
 
 const Main = () => {
@@ -138,4 +132,4 @@ const Main = () => {
     </html>
 }
 
-export default Main
+export default App
