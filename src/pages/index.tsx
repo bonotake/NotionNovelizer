@@ -17,7 +17,8 @@ class Converter {
      * @returns インデントされたテキスト
      */ 
     private indent(text: string): string {
-        if (text.startsWith('「') || text.startsWith('『')) {
+        const doNotIndentWith = ['「', '『', '（', '('];
+        if (doNotIndentWith.some((c) => text.startsWith(c))) {
             return text;
         } else {
             return '　' + text;
