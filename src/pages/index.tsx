@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React, { useState, useRef } from 'react'
+import React, { useState } from 'react'
 import { Block, ParagraphBlock, HeadingOneBlock, HeadingTwoBlock, HeadingThreeBlock, RichText }
     from '@notionhq/client/build/src/api-types'
 import useSWR from 'swr'
