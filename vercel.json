@@ -1,0 +1,9 @@
+{
+    "redirects": [
+      {
+        "source": "/api",
+        "destination": "https://notion-novelizer.vercel.app/api",
+        "permanent": true
+      }
+    ]
+  }
