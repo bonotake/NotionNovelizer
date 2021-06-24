@@ -187,7 +187,7 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
 }
 
 export async function getStaticProps() {
-    const posts = await fetch('https://notion-novelizer.vercel.app/api/content/id=').then((res) => res.json());
+    const posts = await fetch('https://notion-novelizer.vercel.app/api/content?id=').then((res) => res.json());
     return { props: { pageId: '', data: posts } }
 }
 
