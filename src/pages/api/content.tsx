@@ -11,17 +11,21 @@ const notion = new Client({ auth: process.env.NOTION_KEY });
  */
 export default async (req: NextApiRequest, res: NextApiResponse<Blocks>) => {
     console.log('param');
-    console.log(req.query.param);
+    console.log(req.query);
+    let new_id = req.query.id;
+    if (Array.isArray(new_id)) {
+        new_id = new_id[0];
+    }
 
     let result: Block[] = [];
     let has_more = true;
     let start_cursor = null;
-    while (has_more) {
+    while (new_id !== undefined && new_id != '' && has_more) {
         type Param = {
             block_id: string,
             start_cursor?: string
         }
-        let param: Param = { block_id: req.query.param[0] };
+        let param: Param = { block_id: new_id };
         if (start_cursor != null) {
             param.start_cursor = start_cursor;
         }

@@ -2,7 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { ReactPropTypes, useState } from 'react'
 import { Block, ParagraphBlock, HeadingOneBlock, HeadingTwoBlock, HeadingThreeBlock, RichText }
     from '@notionhq/client/build/src/api-types'
-import useSWR from 'swr'
+import useSWR, { trigger } from 'swr'
 
 
 class Converter {
@@ -131,12 +131,12 @@ const Content: React.FC<{ elem: JSX.Element | JSX.Element[] }> = ({elem}) => {
 
 type NovelerProp = {
     pageId: string,
-    text: string
+    data: { blocks: Block[] }
 }
 
 const Noveler: React.FC<NovelerProp> = (prop) => {
     let input: HTMLInputElement;
-    let pageId = prop.pageId;
+    const [pageId, setPageId] = useState(prop.pageId);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>,
                             inputElem: HTMLInputElement) => {
@@ -145,15 +145,16 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
         let str = inputElem.value;
         const len = str.length;
         if (len >= 32) {
-            pageId = str.substring(len - 32);
+            setPageId(str.substring(len - 32));
+            // trigger(['/api/content', '76649a0f8a5f49af8d01f04e75880773']);
         }
     }
 
-    const fetcher = (url: string, id: string) => {
-        return fetch(`${url}?id=${id}`).then((res) => res.json())
+    const fetcher = async (url: string, id: string) => {
+        return await fetch(`${url}?id=${id}`).then((res) => res.json())
     }
 
-    const { data, error } = useSWR(['/api/content', pageId], fetcher, { initialData: prop.text });
+    const { data, error } = useSWR(['/api/content', pageId], fetcher, { initialData: prop.data });
     const [text, elem]: [string, JSX.Element | JSX.Element[]] = 
         (error) ? ['', <div>failed to load</div>] : 
         (!data) ? ['', <div>loading...</div>] :
@@ -161,7 +162,7 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
             const text = new Converter(data.blocks).text;
             const lines = text.split('\n');
             console.log(lines.length);
-            const elem = lines.map((line) => <React.Fragment>{line}<br/></React.Fragment>);
+            const elem = lines.map((line, index) => <React.Fragment key={index}>{line}<br/></React.Fragment>);
             const result: [string, JSX.Element[]] = [text, elem];
             return result;
         })();
@@ -186,7 +187,8 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
 }
 
 export async function getStaticProps() {
-    return { props: { pageId: '', text: ['開始待ち'] } }
+    const posts = await fetch('http://localhost:3000/api/content').then((res) => res.json());
+    return { props: { pageId: '', data: posts } }
 }
 
 
