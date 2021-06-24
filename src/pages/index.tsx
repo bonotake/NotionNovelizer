@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React, { useState } from 'react'
+import React, { ReactPropTypes, useState } from 'react'
 import { Block, ParagraphBlock, HeadingOneBlock, HeadingTwoBlock, HeadingThreeBlock, RichText }
     from '@notionhq/client/build/src/api-types'
 import useSWR from 'swr'
@@ -78,100 +78,116 @@ class Converter {
 }
 
 
-const App: React.FC = () => {
-    const [pageId, setPageId] = useState('');
-    const [url, setUrl] = useState('');
-    const [text, setText] = useState('');
-
-
-    const Input: React.FC<{}> = () => {
-        let input: HTMLInputElement;
-
-        const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            setUrl(input.value);
-            let str = input.value;
-            const len = str.length;
-            if (len >= 32) {
-                setPageId(str.substring(len - 32));
-            }
-        }
-        return <span>
-            <div className='container'>
-                <div className='row'>
-                    <h1>Notionで小説を</h1>
-                    <div>
-                        <p>
-                            Notionで書いた日本語の文章を、それとなく日本語文書風に閲覧・エクスポートするためのサイトです。<br/>
-                            各小説サイトやフォーマットに合うよう、よしなに変換します。
-                        </p>
-                    </div>
-                </div>
-                <form className='row align-items-end' onSubmit={handleSubmit}>
-                    <div className='col-10'>                    
-                        <label htmlFor='page-url' className='form-label'>Page URL</label>
-                        <input type='text' className='form-control' id='page-url'
-                            ref={node => (input = node)} />
-                    </div>
-                    <div className='col-auto'>
-                        <button className='btn btn-primary' type='submit'>更新</button>
-                    </div>
-                </form>
+type InputProp = {
+    inputNode: HTMLInputElement,
+    handle: (event: React.FormEvent<HTMLFormElement>, input: HTMLInputElement) => void;
+}
+const Input: React.FC<InputProp> = ({ inputNode, handle }) => {
+    return (
+        <form className='row align-items-end' onSubmit={(e) => handle(e, inputNode)}>
+            <div className='col-10'>                    
+                <label htmlFor='page-url' className='form-label'>Page URL</label>
+                <input type='text' className='form-control' id='page-url'
+                    ref={node => (inputNode = node)} />
             </div>
-        </span>
-    }   
-
-
-    const Manipulate: React.FC<{}> = () => {
-        const handleCopy = async () => {
-            await navigator.clipboard.writeText(text);
-        }
-
-        return <span>
-            <div className='container row justify-align-end'>
-                <div className='col-8'>
-                </div>
-                <div className='col-4'>
-                    <button className='btn btn-primary' onClick={handleCopy}>
-                        クリップボードにコピー
-                    </button>
-                </div>
+            <div className='col-auto'>
+                <button className='btn btn-primary' type='submit'>更新</button>
             </div>
-        </span>
+        </form>
+    )
+}   
+
+const Manipulate: React.FC<{ text: string }> = ({ text }) => {
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(text);
     }
 
-    const Content: React.FC<{}> = () => {
-        const format = (elem: JSX.Element | JSX.Element[]) => 
-            <span>
-                <div className='container'>
-                    <h2>本文</h2>
-                    <div className='d-grid gap-3 container border'>
-                        {elem}
-                    </div>
-                </div>
-            </span>
-
-        const { data, error } = useSWR(`/api/${pageId}`);
-
-        if (error) return format(<div>failed to load</div>);
-        if (!data) return format(<div>loading...</div>);
-
-        const text = new Converter(data.blocks).text;
-        const lines = text.split('\n');
-        console.log(lines.length);
-        const result = lines.map((line) => <React.Fragment>{line}<br/></React.Fragment>);
-        setText(text);
-
-        return format(result)
-    }
-
-    return <html>
-        <body>
-            <Input/>
-            <Manipulate/>
-            <Content/>
-        </body>
-    </html>        
+    return <span>
+        <div className='container row justify-align-end'>
+            <div className='col-8'>
+            </div>
+            <div className='col-4'>
+                <button className='btn btn-primary' onClick={handleCopy}>
+                    クリップボードにコピー
+                </button>
+            </div>
+        </div>
+    </span>
 }
 
-export default App
+
+const Content: React.FC<{ elem: JSX.Element | JSX.Element[] }> = ({elem}) => {
+    return (
+        <span>
+            <div className='container'>
+                <h2>本文</h2>
+                <div className='d-grid gap-3 container border'>
+                    {elem}
+                </div>
+            </div>
+        </span>
+    )
+}
+
+type NovelerProp = {
+    pageId: string,
+    text: string
+}
+
+const Noveler: React.FC<NovelerProp> = (prop) => {
+    let input: HTMLInputElement;
+    let pageId = prop.pageId;
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>,
+                            inputElem: HTMLInputElement) => {
+        event.preventDefault();
+        // setUrl(input.value);
+        let str = inputElem.value;
+        const len = str.length;
+        if (len >= 32) {
+            pageId = str.substring(len - 32);
+        }
+    }
+
+    const fetcher = (url: string, id: string) => {
+        return fetch(`${url}?id=${id}`).then((res) => res.json())
+    }
+
+    const { data, error } = useSWR(['/api/content', pageId], fetcher, { initialData: prop.text });
+    const [text, elem]: [string, JSX.Element | JSX.Element[]] = 
+        (error) ? ['', <div>failed to load</div>] : 
+        (!data) ? ['', <div>loading...</div>] :
+        (() => {
+            const text = new Converter(data.blocks).text;
+            const lines = text.split('\n');
+            console.log(lines.length);
+            const elem = lines.map((line) => <React.Fragment>{line}<br/></React.Fragment>);
+            const result: [string, JSX.Element[]] = [text, elem];
+            return result;
+        })();
+
+
+    return <div>
+        <div className='container'>
+            <div className='row'>
+                <h1>Notionで小説を</h1>
+                <div>
+                    <p>
+                        Notionで書いた日本語の文章を、それとなく日本語文書風に閲覧・エクスポートするためのサイトです。<br/>
+                        各小説サイトやフォーマットに合うよう、よしなに変換します。
+                    </p>
+                </div>
+            </div>
+        </div>
+            <Input inputNode={input} handle={handleSubmit}/>
+            <Manipulate text={text}/>
+            <Content elem={elem}/>
+    </div>        
+}
+
+export async function getStaticProps() {
+    return { props: { pageId: '', text: ['開始待ち'] } }
+}
+
+
+export default Noveler
