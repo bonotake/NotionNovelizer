@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React, { ReactPropTypes, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Block, ParagraphBlock, HeadingOneBlock, HeadingTwoBlock, HeadingThreeBlock, RichText }
     from '@notionhq/client/build/src/api-types'
 import useSWR, { trigger } from 'swr'
@@ -137,6 +137,8 @@ type NovelerProp = {
 const Noveler: React.FC<NovelerProp> = (prop) => {
     let input: HTMLInputElement;
     const [pageId, setPageId] = useState(prop.pageId);
+    const [text, setText] = useState('');
+    const [count, setCount] = useState(0);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>,
                             inputElem: HTMLInputElement) => {
@@ -150,24 +152,46 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
         }
     }
 
-    const fetcher = async (url: string, id: string) => {
-        return await fetch(`${url}?id=${id}`).then((res) => res.json())
-    }
+    const fetcher = (url: string, id: string) => fetch(`${url}?id=${id}`)
+        .then((res) => res.json())
+        // .then(async (res) => {
+        //     const json: { blocks: Block[] } = await res.json();
+        //     const text = new Converter(json.blocks).text;
+        //     const lines: string[] = newText.split('\n');
+        //     const elems = 
+        //         lines.map((line, index) => <React.Fragment key={index}>{line}<br/></React.Fragment>);
+        //     return {
+        //         text: text,
+        //         elems: elems
+        //     }
+        // });
 
     const { data, error } = useSWR(['/api/content', pageId], fetcher, { initialData: prop.data });
-    const [text, elem]: [string, JSX.Element | JSX.Element[]] = 
-        (error) ? ['', <div>failed to load</div>] : 
-        (!data) ? ['', <div>loading...</div>] :
-        (() => {
-            const text = new Converter(data.blocks).text;
-            const lines = text.split('\n');
-            console.log(lines.length);
-            const elem = lines.map((line, index) => <React.Fragment key={index}>{line}<br/></React.Fragment>);
-            const result: [string, JSX.Element[]] = [text, elem];
-            return result;
-        })();
+    let result: JSX.Element | JSX.Element[] = <React.Fragment/>;
+    if (error) {
+        setText('');
+        result = <div>failed to load</div>;
 
+    } else if (!data) {
+        setText('');
+        result = <div>loading...</div>;
+    }
+    const newText = new Converter(data.blocks).text;
+    console.log(`text: ${text}`);
 
+    useEffect(() => {
+        console.log(`page id: ${pageId}`);
+        console.log(`data.blocks(${data.blocks.length}): ${data.blocks}`);
+        console.log(`new text length: ${newText.length}`);
+        setText(newText);
+        const lines = newText.split('\n');
+        console.log(`hello: ${lines.length}`);
+        result = 
+            lines.map((line, index) => <React.Fragment key={index}>{line}<br/></React.Fragment>)
+    });
+
+    console.log(`text length: ${text.length}`);
+    console.log(`result: ${result}`);
     return <div>
         <div className='container'>
             <div className='row'>
@@ -179,10 +203,26 @@ const Noveler: React.FC<NovelerProp> = (prop) => {
                     </p>
                 </div>
             </div>
+            <form className='row align-items-end' onSubmit={(e) => handleSubmit(e, input)}>
+                <div className='col-10'>                    
+                    <label htmlFor='page-url' className='form-label'>Page URL</label>
+                    <input type='text' className='form-control' id='page-url'
+                        ref={node => (input = node)} />
+                </div>
+                <div className='col-auto'>
+                    <button className='btn btn-primary' type='submit'>更新</button>
+                </div>
+            </form>
         </div>
-            <Input inputNode={input} handle={handleSubmit}/>
-            <Manipulate text={text}/>
-            <Content elem={elem}/>
+        {/* <Input inputNode={input} handle={handleSubmit}/> */}
+        <Manipulate text={text}/>
+        {/* <Content elem={result}/> */}
+        <div className='container'>
+            <h2>本文</h2>
+            <div className='d-grid gap-3 container border'>
+                {count}
+            </div>
+        </div>
     </div>        
 }
 
