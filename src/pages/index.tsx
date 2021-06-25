@@ -32,13 +32,23 @@ export default function App() {
     const { data, error } = useSWR(['/api/content', pageId], fetcher);
     const elem = error ? <div>failed to load</div> : !data ? <div>loading...</div> : data.elems
 
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(data.text);
+    }
 
     return (
         <React.Fragment>
+            <h1>Notionで小説を</h1>
+            <p>
+                Notionで書いた日本語の文章を、それとなく日本語文書風に閲覧・エクスポートするためのサイトです。<br/>
+                各小説サイトやフォーマットに合うよう、よしなに変換します。<br/>
+                絶賛開発中。
+            </p>
             <form onSubmit={handleSubmit<FormEvent>(onSubmit)}>
                 <label htmlFor='page-url'>Page URL</label>
                 <input defaultValue="" {...register("url")} />
             </form>
+            <button onClick={handleCopy}>クリップボードにコピー</button>
             <div>{elem}</div>    
         </React.Fragment>
     );
