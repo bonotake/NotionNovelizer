@@ -2,13 +2,14 @@ import React, { FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import useSWR from "swr";
 import Converter from "libs/convert";
-import { Button, Form } from "react-bootstrap";
+import { Button, Form, Row, Col, Container } from "react-bootstrap";
+import { useState } from "react";
 
 
 export default function App() {
     const { register, handleSubmit, watch, formState: { errors } } = useForm();
-    const url = '';
-    const onSubmit = () => { url = watch('url') };
+    const [url, setUrl] = useState('');
+    const onSubmit = () => { setUrl(watch('url')) };
     const len = url.length;
     let pageId = "";
     if (url.includes('notion.so') && len >= 32) {
@@ -46,20 +47,35 @@ export default function App() {
                     crossOrigin="anonymous"/>
             </head>
             <body>
-                <h1>Notionで小説を</h1>
-                <p>
-                    Notionで書いた日本語の文章を、それとなく日本語文書風に閲覧・エクスポートするためのサイトです。<br/>
-                    各小説サイトやフォーマットに合うよう、よしなに変換します。<br/>
-                    絶賛開発中。
-                </p>
-                <Form onSubmit={handleSubmit<FormEvent>(onSubmit)}>
-                    <Form.Label htmlFor='page-url'>Page URL</Form.Label>
-                    <Form.Control defaultValue="" {...register("url")} />
-                    <Button type='submit'>送信</Button>
-                </Form>
-                <Button onClick={handleCopy}>クリップボードにコピー</Button>
-                <div>{elem}</div>    
-            </body>
+                <Container>
+                    <h1>Notionで小説を</h1>
+                    <p>
+                        Notionで書いた日本語の文章を、それとなく日本語文書風に閲覧・エクスポートするためのサイトです。<br/>
+                        各小説サイトやフォーマットに合うよう、よしなに変換します。<br/>
+                        絶賛開発中。
+                    </p>
+                    <Form onSubmit={handleSubmit<FormEvent>(onSubmit)}>
+                        <Row>
+                            <Col sm={8}>
+                                <Form.Label htmlFor='page-url'>Page URL</Form.Label>
+                                <Form.Control defaultValue="" {...register("url")} />
+                            </Col>
+                            <Col>
+                                <Button type='submit'>送信</Button>
+                            </Col>
+                        </Row>
+                    </Form>
+                    <Row>
+                        <Col sm={8}>
+
+                        </Col>
+                        <Col>
+                            <Button onClick={handleCopy}>クリップボードにコピー</Button>
+                        </Col>
+                    </Row>
+                    <div>{elem}</div>    
+                </Container>
+        </body>
         </html>
     );
 }
